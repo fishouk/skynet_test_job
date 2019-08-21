@@ -1,26 +1,77 @@
-import React from 'react';
-import logo from './logo.svg';
+import 'normalize.css';
 import './App.css';
+import React, {Component} from 'react';
+import { BrowserRouter as Router, Route, Switch } from "react-router-dom";
+import {Helmet} from "react-helmet";
+import { connect } from 'react-redux';
+import { bindActionCreators } from 'redux';
 
-function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
+import fetchTarifs from './actions/fetchTarifs';
+import { addDiscoountsSubtarifs, sortSubtarifsByPrice } from './reducers/index';
+
+import TarifsApp from './Tarifs/TarifsApp';
+import TarifAppContainer from './Tarifs/TarifAppContainer';
+import SubtarifAppContainer from './Tarifs/SubtarifAppContainer';
+import Error404 from './Components/Error404';
+import Preload from './Components/Preload';
+
+
+class App extends Component { 
+
+    componentDidMount() {
+        const { fetchTarifs } = this.props;
+        fetchTarifs();
+    }
+
+    render() {
+      return ( 
+        <React.Fragment>
+          <Helmet 
+            htmlAttributes={{"lang": "ru", "amp": undefined}}
+            defaultTitle="Выбор тарифа"
+            meta={[{"charset": "utf-8"}]}
+          />
+          <div className="container">
+            <Preload>    
+              <Router>
+                <Switch>     
+                  <Route exact path="/"  component={() => <TarifsApp/>} />    
+                  <Route
+                    path="/tarif-:id/subtarif-:subId/"
+                    render={props => (
+                        <SubtarifAppContainer tarifId={parseInt(props.match.params.id, 10)} subtarifId={parseInt(props.match.params.subId, 10)} {...props}
+                        />
+                    )}
+                  />    
+                  <Route
+                    path="/tarif-:id/"
+                    render={props => (
+                        <TarifAppContainer tarifId={parseInt(props.match.params.id, 10)} {...props}
+                        />
+                    )}
+                  />
+                          
+                  <Route component={Error404} />
+                </Switch>        
+              </Router>
+            </Preload>   
+          </div> 
+        </React.Fragment>
+      );  
+    }
 }
 
-export default App;
+
+const mapStateToProps = state => ({
+  sortedTarifs: sortSubtarifsByPrice(state),
+  sortedTarifsWithDiscount: addDiscoountsSubtarifs(state),  
+});
+
+const mapDispatchToProps = dispatch => bindActionCreators({
+  fetchTarifs: fetchTarifs
+}, dispatch);
+
+export default connect(
+  mapStateToProps,
+  mapDispatchToProps
+)(App);
